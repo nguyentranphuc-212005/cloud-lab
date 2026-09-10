@@ -19,7 +19,7 @@ function App() {
     e.preventDefault()
 
     try {
-      const response = await fetch('/api/students', {
+      const response = await fetch('http://localhost:5000/api/students', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -58,7 +58,7 @@ function App() {
 
   // Câu 47: Lấy danh sách sinh viên
   useEffect(() => {
-    fetch('/api/students')
+    fetch('http://localhost:5000/api/students')
       .then((response) => {
         if (!response.ok) {
           throw new Error('Khong the lay danh sach sinh vien')

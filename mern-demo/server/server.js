@@ -2,10 +2,14 @@ require("dotenv").config();
 
 const express = require("express");
 const mongoose = require("mongoose");
+const cors = require("cors");
 
 const app = express();
 
 const PORT = process.env.PORT || 5000;
+
+// Cho phép Frontend gọi API Backend
+app.use(cors());
 
 // Cho phép nhận dữ liệu JSON
 app.use(express.json());
