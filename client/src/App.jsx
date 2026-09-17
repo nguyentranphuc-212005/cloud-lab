@@ -1,280 +1,208 @@
-import { useEffect, useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useEffect, useState } from "react";
+import "./App.css";
 
 function App() {
-  const [students, setStudents] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+    const [students, setStudents] = useState([]);
 
-  // Câu 48: State cho Form
-  const [studentId, setStudentId] = useState('')
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
+    const [studentId, setStudentId] = useState("");
+    const [name, setName] = useState("");
+    const [email, setEmail] = useState("");
 
-  // Câu 49: Gửi dữ liệu đến API POST /api/students
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+    const [editingId, setEditingId] = useState(null);
 
-    try {
-      const response = await fetch('http://localhost:5000/api/students', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          studentId,
-          name,
-          email,
-        }),
-      })
+    // Lấy danh sách sinh viên
+    const getStudents = async () => {
+        try {
+            const response = await fetch("http://localhost:5000/api/students");
+            const data = await response.json();
 
-      const data = await response.json()
+            setStudents(data);
+        } catch (error) {
+            console.error("Lỗi:", error);
+        }
+    };
 
-      if (!response.ok) {
-        throw new Error(
-          data.error || data.message || 'Loi khi them sinh vien'
-        )
-      }
+    useEffect(() => {
+        getStudents();
+    }, []);
 
-      // Thêm sinh viên mới vào danh sách
-      setStudents((prevStudents) => [
-        ...prevStudents,
-        data,
-      ])
+    // Thêm hoặc sửa sinh viên
+    const handleSubmit = async (e) => {
+        e.preventDefault();
 
-      // Xóa dữ liệu trong Form
-      setStudentId('')
-      setName('')
-      setEmail('')
+        const student = {
+            studentId: studentId,
+            name: name,
+            email: email
+        };
 
-      alert('Them sinh vien thanh cong!')
-    } catch (error) {
-      alert('Loi: ' + error.message)
-    }
-  }
+        try {
+            if (editingId) {
+                // Sửa
+                await fetch(
+                    `http://localhost:5000/api/students/${editingId}`,
+                    {
+                        method: "PUT",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify(student)
+                    }
+                );
+            } else {
+                // Thêm
+                await fetch("http://localhost:5000/api/students", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(student)
+                });
+            }
 
-  // Câu 47: Lấy danh sách sinh viên
-  useEffect(() => {
-    fetch('http://localhost:5000/api/students')
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error('Khong the lay danh sach sinh vien')
+            // Xóa dữ liệu trong form
+            setStudentId("");
+            setName("");
+            setEmail("");
+            setEditingId(null);
+
+            // Lấy lại danh sách
+            getStudents();
+
+        } catch (error) {
+            console.error("Lỗi:", error);
+        }
+    };
+
+    // Chọn sinh viên để sửa
+    const handleEdit = (student) => {
+        setStudentId(student.studentId);
+        setName(student.name);
+        setEmail(student.email);
+
+        setEditingId(student._id);
+    };
+
+    // Xóa sinh viên
+    const handleDelete = async (id) => {
+        if (!window.confirm("Bạn có chắc muốn xóa sinh viên này?")) {
+            return;
         }
 
-        return response.json()
-      })
-      .then((data) => {
-        setStudents(data)
-        setLoading(false)
-      })
-      .catch((error) => {
-        setError(error.message)
-        setLoading(false)
-      })
-  }, [])
+        try {
+            await fetch(
+                `http://localhost:5000/api/students/${id}`,
+                {
+                    method: "DELETE"
+                }
+            );
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img
-            src={heroImg}
-            className="base"
-            width="170"
-            height="179"
-            alt=""
-          />
+            getStudents();
 
-          <img
-            src={reactLogo}
-            className="framework"
-            alt="React logo"
-          />
+        } catch (error) {
+            console.error("Lỗi:", error);
+        }
+    };
 
-          <img
-            src={viteLogo}
-            className="vite"
-            alt="Vite logo"
-          />
-        </div>
+    return (
+        <div className="page">
 
-        <div>
-          <h1>Quản lý sinh viên</h1>
+            <div className="container">
 
-          {/* Câu 48 + Câu 49 */}
-          <form onSubmit={handleSubmit}>
-            <div>
-              <label>MSSV: </label>
-              <input
-                type="text"
-                value={studentId}
-                onChange={(e) => setStudentId(e.target.value)}
-                placeholder="Nhập MSSV"
-                required
-              />
+                <h1>Quản lý sinh viên</h1>
+
+                <h2>
+                    {editingId ? "Sửa sinh viên" : "Thêm sinh viên"}
+                </h2>
+
+                <form onSubmit={handleSubmit}>
+
+                    <input
+                        type="text"
+                        placeholder="MSSV"
+                        value={studentId}
+                        onChange={(e) => setStudentId(e.target.value)}
+                        required
+                    />
+
+                    <input
+                        type="text"
+                        placeholder="Họ tên"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        required
+                    />
+
+                    <input
+                        type="email"
+                        placeholder="Email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                    />
+
+                    <button type="submit">
+                        {editingId ? "Cập nhật sinh viên" : "Thêm sinh viên"}
+                    </button>
+
+                </form>
+
+                <h2>Danh sách sinh viên</h2>
+
+                <table>
+
+                    <thead>
+                        <tr>
+                            <th>STT</th>
+                            <th>MSSV</th>
+                            <th>Họ tên</th>
+                            <th>Email</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {students.map((student, index) => (
+
+                            <tr key={student._id}>
+
+                                <td>{index + 1}</td>
+
+                                <td>{student.studentId}</td>
+
+                                <td>{student.name}</td>
+
+                                <td>{student.email}</td>
+
+                                <td>
+                                    <button
+                                        className="btn-edit"
+                                        onClick={() => handleEdit(student)}
+                                    >
+                                        Sửa
+                                    </button>
+
+                                    <button
+                                        className="btn-delete"
+                                        onClick={() => handleDelete(student._id)}
+                                    >
+                                        Xóa
+                                    </button>
+                                </td>
+
+                            </tr>
+
+                        ))}
+
+                    </tbody>
+
+                </table>
+
             </div>
 
-            <br />
-
-            <div>
-              <label>Họ tên: </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Nhập họ tên"
-                required
-              />
-            </div>
-
-            <br />
-
-            <div>
-              <label>Email: </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Nhập email"
-                required
-              />
-            </div>
-
-            <br />
-
-            <button type="submit">
-              Thêm sinh viên
-            </button>
-          </form>
-
-          <hr />
-
-          <h2>Danh sách sinh viên</h2>
-
-          {loading && <p>Đang tải danh sách sinh viên...</p>}
-
-          {error && (
-            <p>
-              Lỗi: {error}
-            </p>
-          )}
-
-          {!loading && !error && students.length === 0 && (
-            <p>Chưa có sinh viên nào.</p>
-          )}
-
-          {!loading && !error && students.length > 0 && (
-            <table border="1" cellPadding="10">
-              <thead>
-                <tr>
-                  <th>Mã sinh viên</th>
-                  <th>Họ tên</th>
-                  <th>Email</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {students.map((student) => (
-                  <tr key={student._id}>
-                    <td>{student.studentId}</td>
-                    <td>{student.name}</td>
-                    <td>{student.email}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
         </div>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img
-                  className="button-icon"
-                  src={reactLogo}
-                  alt=""
-                />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-
-          <ul>
-            <li>
-              <a
-                href="https://github.com/vitejs/vite"
-                target="_blank"
-              >
-                GitHub
-              </a>
-            </li>
-
-            <li>
-              <a
-                href="https://chat.vite.dev/"
-                target="_blank"
-              >
-                Discord
-              </a>
-            </li>
-
-            <li>
-              <a
-                href="https://x.com/vite_js"
-                target="_blank"
-              >
-                X.com
-              </a>
-            </li>
-
-            <li>
-              <a
-                href="https://bsky.app/profile/vite.dev"
-                target="_blank"
-              >
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="spacer"></section>
-    </>
-  )
+    );
 }
 
-export default App
+export default App;
