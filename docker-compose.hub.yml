@@ -1,0 +1,12 @@
+services:
+  backend:
+    image: nguyentranphuc212005/mern-backend:1.0
+    ports:
+      - "5000:5000"
+    environment:
+      MONGODB_URI: "${MONGODB_URI}"
+
+  frontend:
+    image: nguyentranphuc212005/mern-frontend:1.0
+    ports:
+      - "8080:80"
