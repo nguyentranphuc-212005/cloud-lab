@@ -109,7 +109,7 @@ function App() {
 
             <div className="container">
 
-                <h1>Quản lý sinh viên</h1>
+                <h1>Quản lý sinh viên - Version 2.0</h1>
 
                 <h2>
                     {editingId ? "Sửa sinh viên" : "Thêm sinh viên"}

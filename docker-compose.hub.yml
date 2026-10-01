@@ -7,6 +7,6 @@ services:
       MONGODB_URI: "${MONGODB_URI}"
 
   frontend:
-    image: nguyentranphuc212005/mern-frontend:1.0
+    image: nguyentranphuc212005/mern-frontend:2.0
     ports:
       - "8080:80"
