@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 
+// Lấy URL Backend từ biến môi trường Vite
+// Nếu chạy local mà chưa có VITE_API_URL thì dùng localhost:5000
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 function App() {
     const [students, setStudents] = useState([]);
 
@@ -13,7 +17,7 @@ function App() {
     // Lấy danh sách sinh viên
     const getStudents = async () => {
         try {
-            const response = await fetch("http://localhost:5000/api/students");
+            const response = await fetch(`${API_URL}/api/students`);
             const data = await response.json();
 
             setStudents(data);
@@ -40,7 +44,7 @@ function App() {
             if (editingId) {
                 // Sửa
                 await fetch(
-                    `http://localhost:5000/api/students/${editingId}`,
+                    `${API_URL}/api/students/${editingId}`,
                     {
                         method: "PUT",
                         headers: {
@@ -51,7 +55,7 @@ function App() {
                 );
             } else {
                 // Thêm
-                await fetch("http://localhost:5000/api/students", {
+                await fetch(`${API_URL}/api/students`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json"
@@ -91,7 +95,7 @@ function App() {
 
         try {
             await fetch(
-                `http://localhost:5000/api/students/${id}`,
+                `${API_URL}/api/students/${id}`,
                 {
                     method: "DELETE"
                 }
