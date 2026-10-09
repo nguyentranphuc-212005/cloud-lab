@@ -8,6 +8,11 @@ const cors = require("cors");
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Thêm route 
+app.get("/", (req, res) => {
+  res.send("Backend dang hoat dong!");
+});
+
 // Câu 58: Cấu hình CORS cho Production
 const allowedOrigins = [
     process.env.CLIENT_URL,
