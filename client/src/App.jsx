@@ -1,10 +1,6 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 
-// Lấy URL Backend từ biến môi trường Vite
-// Nếu chạy local mà chưa có VITE_API_URL thì dùng localhost:5000
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-
 function App() {
     const [students, setStudents] = useState([]);
 
@@ -13,16 +9,26 @@ function App() {
     const [email, setEmail] = useState("");
 
     const [editingId, setEditingId] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [message, setMessage] = useState("");
 
-    // Lấy danh sách sinh viên
+    // Lấy danh sách sinh viên thông qua Nginx Reverse Proxy
     const getStudents = async () => {
         try {
-            const response = await fetch(`${API_URL}/api/students`);
-            const data = await response.json();
+            const response = await fetch("/api/students");
 
+            if (!response.ok) {
+                throw new Error("Không thể lấy danh sách sinh viên");
+            }
+
+            const data = await response.json();
             setStudents(data);
+            setMessage("");
         } catch (error) {
             console.error("Lỗi:", error);
+            setMessage("Không thể kết nối Backend. Vui lòng thử lại.");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -33,29 +39,27 @@ function App() {
     // Thêm hoặc sửa sinh viên
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setMessage("");
 
         const student = {
-            studentId: studentId,
-            name: name,
-            email: email
+            studentId,
+            name,
+            email
         };
 
         try {
+            let response;
+
             if (editingId) {
-                // Sửa
-                await fetch(
-                    `${API_URL}/api/students/${editingId}`,
-                    {
-                        method: "PUT",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify(student)
-                    }
-                );
+                response = await fetch(`/api/students/${editingId}`, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(student)
+                });
             } else {
-                // Thêm
-                await fetch(`${API_URL}/api/students`, {
+                response = await fetch("/api/students", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json"
@@ -64,27 +68,44 @@ function App() {
                 });
             }
 
-            // Xóa dữ liệu trong form
+            if (!response.ok) {
+                throw new Error("Không thể lưu thông tin sinh viên");
+            }
+
             setStudentId("");
             setName("");
             setEmail("");
             setEditingId(null);
 
-            // Lấy lại danh sách
-            getStudents();
+            setMessage(
+                editingId
+                    ? "Cập nhật sinh viên thành công!"
+                    : "Thêm sinh viên thành công!"
+            );
 
+            await getStudents();
         } catch (error) {
             console.error("Lỗi:", error);
+            setMessage(error.message || "Đã xảy ra lỗi khi lưu sinh viên.");
         }
     };
 
     // Chọn sinh viên để sửa
     const handleEdit = (student) => {
-        setStudentId(student.studentId);
-        setName(student.name);
-        setEmail(student.email);
-
+        setStudentId(student.studentId || "");
+        setName(student.name || "");
+        setEmail(student.email || "");
         setEditingId(student._id);
+        setMessage("");
+    };
+
+    // Hủy sửa
+    const handleCancelEdit = () => {
+        setStudentId("");
+        setName("");
+        setEmail("");
+        setEditingId(null);
+        setMessage("");
     };
 
     // Xóa sinh viên
@@ -94,117 +115,168 @@ function App() {
         }
 
         try {
-            await fetch(
-                `${API_URL}/api/students/${id}`,
-                {
-                    method: "DELETE"
-                }
-            );
+            const response = await fetch(`/api/students/${id}`, {
+                method: "DELETE"
+            });
 
-            getStudents();
+            if (!response.ok) {
+                throw new Error("Không thể xóa sinh viên");
+            }
 
+            setMessage("Xóa sinh viên thành công!");
+            await getStudents();
         } catch (error) {
             console.error("Lỗi:", error);
+            setMessage(error.message || "Đã xảy ra lỗi khi xóa sinh viên.");
         }
     };
 
     return (
         <div className="page">
-
             <div className="container">
+                <header className="app-header">
+                    <div>
+                        <h1>Quản lý sinh viên</h1>
+                        <p>Hệ thống quản lý thông tin sinh viên</p>
+                    </div>
 
-                <h1>Quản lý sinh viên - Version 2.0</h1>
+                    <span className="version-badge">Frontend v2.0</span>
+                </header>
 
-                <h2>
-                    {editingId ? "Sửa sinh viên" : "Thêm sinh viên"}
-                </h2>
+                <div className="system-status">
+                    <span className="status-dot"></span>
+                    <span>Ứng dụng phiên bản 2.0</span>
+                </div>
 
-                <form onSubmit={handleSubmit}>
+                {message && (
+                    <div className="message" role="status">
+                        {message}
+                    </div>
+                )}
 
-                    <input
-                        type="text"
-                        placeholder="MSSV"
-                        value={studentId}
-                        onChange={(e) => setStudentId(e.target.value)}
-                        required
-                    />
-
-                    <input
-                        type="text"
-                        placeholder="Họ tên"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        required
-                    />
-
-                    <input
-                        type="email"
-                        placeholder="Email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                    />
-
-                    <button type="submit">
+                <section className="form-section">
+                    <h2>
                         {editingId ? "Cập nhật sinh viên" : "Thêm sinh viên"}
-                    </button>
+                    </h2>
 
-                </form>
+                    <form onSubmit={handleSubmit}>
+                        <input
+                            type="text"
+                            placeholder="MSSV"
+                            value={studentId}
+                            onChange={(e) => setStudentId(e.target.value)}
+                            required
+                        />
 
-                <h2>Danh sách sinh viên</h2>
+                        <input
+                            type="text"
+                            placeholder="Họ tên"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            required
+                        />
 
-                <table>
+                        <input
+                            type="email"
+                            placeholder="Email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                        />
 
-                    <thead>
-                        <tr>
-                            <th>STT</th>
-                            <th>MSSV</th>
-                            <th>Họ tên</th>
-                            <th>Email</th>
-                            <th>Thao tác</th>
-                        </tr>
-                    </thead>
+                        <div className="form-actions">
+                            <button type="submit">
+                                {editingId
+                                    ? "Cập nhật sinh viên"
+                                    : "Thêm sinh viên"}
+                            </button>
 
-                    <tbody>
+                            {editingId && (
+                                <button
+                                    type="button"
+                                    onClick={handleCancelEdit}
+                                >
+                                    Hủy sửa
+                                </button>
+                            )}
+                        </div>
+                    </form>
+                </section>
 
-                        {students.map((student, index) => (
+                <section className="student-section">
+                    <div className="section-heading">
+                        <h2>Danh sách sinh viên</h2>
+                        <span className="student-count">
+                            {students.length} sinh viên
+                        </span>
+                    </div>
 
-                            <tr key={student._id}>
+                    {loading ? (
+                        <p>Đang tải danh sách sinh viên...</p>
+                    ) : (
+                        <div className="table-wrapper">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>STT</th>
+                                        <th>MSSV</th>
+                                        <th>Họ tên</th>
+                                        <th>Email</th>
+                                        <th>Thao tác</th>
+                                    </tr>
+                                </thead>
 
-                                <td>{index + 1}</td>
+                                <tbody>
+                                    {students.length > 0 ? (
+                                        students.map((student, index) => (
+                                            <tr key={student._id}>
+                                                <td>{index + 1}</td>
+                                                <td>{student.studentId}</td>
+                                                <td>{student.name}</td>
+                                                <td>{student.email}</td>
+                                                <td>
+                                                    <button
+                                                        type="button"
+                                                        className="btn-edit"
+                                                        onClick={() =>
+                                                            handleEdit(student)
+                                                        }
+                                                    >
+                                                        Sửa
+                                                    </button>
 
-                                <td>{student.studentId}</td>
+                                                    <button
+                                                        type="button"
+                                                        className="btn-delete"
+                                                        onClick={() =>
+                                                            handleDelete(
+                                                                student._id
+                                                            )
+                                                        }
+                                                    >
+                                                        Xóa
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan="5">
+                                                Chưa có sinh viên hoặc chưa tải
+                                                được dữ liệu.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </section>
 
-                                <td>{student.name}</td>
-
-                                <td>{student.email}</td>
-
-                                <td>
-                                    <button
-                                        className="btn-edit"
-                                        onClick={() => handleEdit(student)}
-                                    >
-                                        Sửa
-                                    </button>
-
-                                    <button
-                                        className="btn-delete"
-                                        onClick={() => handleDelete(student._id)}
-                                    >
-                                        Xóa
-                                    </button>
-                                </td>
-
-                            </tr>
-
-                        ))}
-
-                    </tbody>
-
-                </table>
-
+                <footer className="app-footer">
+                    Student Management System · Frontend v2.0
+                </footer>
             </div>
-
         </div>
     );
 }

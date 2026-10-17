@@ -1,4 +1,3 @@
-
 require("dotenv").config();
 
 const express = require("express");
@@ -8,9 +7,9 @@ const cors = require("cors");
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Thêm route 
+// Trang chủ Backend
 app.get("/", (req, res) => {
-  res.send("Backend dang hoat dong!");
+    res.send("Backend dang hoat dong!");
 });
 
 // Câu 58: Cấu hình CORS cho Production
@@ -22,8 +21,6 @@ const allowedOrigins = [
 
 const corsOptions = {
     origin: function (origin, callback) {
-        // Cho phép request không có Origin
-        // hoặc Origin nằm trong danh sách cho phép
         if (!origin || allowedOrigins.includes(origin)) {
             return callback(null, true);
         }
@@ -36,26 +33,172 @@ const corsOptions = {
     allowedHeaders: ["Content-Type", "Authorization"]
 };
 
-// CORS phải được khai báo trước các API
 app.use(cors(corsOptions));
-
-// Xử lý request preflight OPTIONS trên Express 5
 app.options(/.*/, cors(corsOptions));
-
-// Cho phép nhận dữ liệu JSON
 app.use(express.json());
 
-// GHI LOG REQUEST VÀ RESPONSE HTTP
+// Câu 44: Health Check cho Render
+// Giữ JSON để Render kiểm tra HTTP 200
+app.get("/health", (req, res) => {
+    res.status(200).json({
+        status: "UP",
+        version: "2.0",
+        timestamp: new Date(),
+        uptime: process.uptime()
+    });
+});
+
+// Trang giao diện kiểm tra Backend
+app.get("/status", (req, res) => {
+    const uptime = Math.floor(process.uptime());
+    const hours = Math.floor(uptime / 3600);
+    const minutes = Math.floor((uptime % 3600) / 60);
+    const seconds = uptime % 60;
+
+    res.status(200).send(`
+        <!DOCTYPE html>
+        <html lang="vi">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Backend API - Version 2.0</title>
+            <style>
+                * {
+                    box-sizing: border-box;
+                }
+
+                body {
+                    margin: 0;
+                    min-height: 100vh;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    padding: 20px;
+                    font-family: Arial, sans-serif;
+                    background: linear-gradient(135deg, #0f172a, #1d4ed8);
+                    color: #1e293b;
+                }
+
+                .card {
+                    width: 100%;
+                    max-width: 480px;
+                    padding: 36px;
+                    background: white;
+                    border-radius: 20px;
+                    box-shadow: 0 20px 50px #0003;
+                }
+
+                .icon {
+                    font-size: 42px;
+                }
+
+                h1 {
+                    margin-bottom: 8px;
+                    color: #1d4ed8;
+                }
+
+                .subtitle {
+                    color: #64748b;
+                    margin-bottom: 28px;
+                }
+
+                .status {
+                    display: inline-block;
+                    padding: 10px 14px;
+                    border-radius: 30px;
+                    background: #dcfce7;
+                    color: #15803d;
+                    font-weight: bold;
+                }
+
+                .info {
+                    margin-top: 26px;
+                    padding: 16px;
+                    background: #f8fafc;
+                    border-radius: 12px;
+                }
+
+                .info p {
+                    display: flex;
+                    justify-content: space-between;
+                    gap: 12px;
+                    border-bottom: 1px solid #e2e8f0;
+                    padding-bottom: 12px;
+                }
+
+                .info p:last-child {
+                    border-bottom: none;
+                    padding-bottom: 0;
+                }
+
+                .label {
+                    color: #64748b;
+                }
+
+                .value {
+                    font-weight: bold;
+                    text-align: right;
+                }
+
+                .footer {
+                    margin-top: 24px;
+                    color: #94a3b8;
+                    font-size: 12px;
+                    text-align: center;
+                }
+            </style>
+        </head>
+        <body>
+            <main class="card">
+                <div class="icon">🚀</div>
+                <h1>Backend API</h1>
+                <p class="subtitle">Hệ thống quản lý sinh viên</p>
+
+                <div class="status">● Hệ thống đang hoạt động</div>
+
+                <div class="info">
+                    <p>
+                        <span class="label">Trạng thái</span>
+                        <span class="value">UP</span>
+                    </p>
+                    <p>
+                        <span class="label">Phiên bản</span>
+                        <span class="value">2.0</span>
+                    </p>
+                    <p>
+                        <span class="label">Cơ sở dữ liệu</span>
+                        <span class="value">MongoDB Atlas</span>
+                    </p>
+                    <p>
+                        <span class="label">Thời gian hoạt động</span>
+                        <span class="value">${hours}h ${minutes}m ${seconds}s</span>
+                    </p>
+                    <p>
+                        <span class="label">Thời gian kiểm tra</span>
+                        <span class="value">${new Date().toLocaleString("vi-VN")}</span>
+                    </p>
+                </div>
+
+                <div class="footer">
+                    Backend Service · Version 2.0
+                </div>
+            </main>
+        </body>
+        </html>
+    `);
+});
+
+// GHI LOG REQUEST VÀ RESPONSE HTTP - KIỂM TRA CI/CD
 app.use((req, res, next) => {
     const startTime = Date.now();
 
     console.log(
-        `[REQUEST] ${new Date().toISOString()} ${req.method} ${req.originalUrl}`
+        `[CI/CD test] [REQUEST] ${new Date().toISOString()} ${req.method} ${req.originalUrl}`
     );
 
     res.on("finish", () => {
         console.log(
-            `[RESPONSE] ${req.method} ${req.originalUrl} - ${res.statusCode} - ${Date.now() - startTime}ms`
+            `[CI/CD test] [RESPONSE] ${req.method} ${req.originalUrl} - ${res.statusCode} - ${Date.now() - startTime}ms`
         );
     });
 
